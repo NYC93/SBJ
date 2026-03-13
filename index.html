@@ -13,6 +13,7 @@
         .msg { padding: 10px 14px; border-radius: 15px; max-width: 85%; line-height: 1.5; font-size: 14px; white-space: pre-wrap; }
         .bot { background: var(--bot-msg); align-self: flex-start; border: 1px solid #e2e8f0; border-bottom-left-radius: 2px; }
         .user { background: var(--user-msg); align-self: flex-end; color: #1e40af; border-bottom-right-radius: 2px; }
+        .video-link { display: block; margin-top: 5px; color: #2563eb; text-decoration: none; font-weight: bold; font-size: 13px; }
         #options { padding: 15px; border-top: 1px solid #e2e8f0; display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; background: #fff; }
         button { padding: 10px 18px; border-radius: 25px; border: 1px solid var(--primary); background: white; color: var(--primary); cursor: pointer; font-weight: 500; transition: 0.2s; }
         button:hover { background: var(--primary); color: white; }
@@ -34,22 +35,53 @@
     const trainingData = {
         'Beginners': {
             intro: "Focus: Fundamentals & Landing. We need to make sure you aren't losing distance due to poor mechanics.",
-            program: "Beginner Power Prep:\n1. Bodyweight Squats: 3 sets x 15 reps\n2. Calf Raises: 3 sets x 20 reps\n3. Glute Bridges: 3 sets x 12 reps\n4. Plank: 3 sets x 30 seconds\n5. Standing Arm Swing Drills: 3 sets x 10 swings"
+            program: "Beginner Power Prep:\n1. Bodyweight Squats: 3x15\n2. Calf Raises: 3x20\n3. Glute Bridges: 3x12\n4. Plank: 3x30s\n5. Arm Swing Drills: 3x10",
+            videos: [
+                { title: "Bodyweight Squat Form", url: "https://www.youtube.com/watch?v=n_xLyzPEX7A" },
+                { title: "Calf Raise Technique", url: "https://www.youtube.com/watch?v=_OewEscCsbo" },
+                { title: "Glute Bridge Tutorial", url: "https://www.youtube.com/watch?v=R6n608M3czU" },
+                { title: "Perfect Plank Form", url: "https://www.youtube.com/watch?v=v25dawSzRTM" },
+                { title: "Jump Arm Swing Drill", url: "https://www.youtube.com/watch?v=Na73NSq2YdQ" }
+            ]
         },
         'Developing': {
-            intro: "Focus: Explosive Extension. You have the basics; now we need to generate more force from your hips.",
-            program: "Developing Explosiveness:\n1. Jump Squats: 4 sets x 8 reps\n2. Alternating Lunges: 3 sets x 10 per leg\n3. Tuck Jumps: 3 sets x 6 reps\n4. Superman (Lower Back): 3 sets x 12 reps\n5. Broad Jump Starts (Landing in Sand): 4 sets x 5 reps"
+            intro: "Focus: Explosive Extension. You have the basics; now we need more force from your hips.",
+            program: "Developing Explosiveness:\n1. Jump Squats: 4x8\n2. Alternating Lunges: 3x10/leg\n3. Tuck Jumps: 3x6\n4. Superman: 3x12\n5. Broad Jump Technique: 4x5",
+            videos: [
+                { title: "Jump Squat Guide", url: "https://www.youtube.com/watch?v=h5TmdMMtIT4" },
+                { title: "Lunge Technique", url: "https://www.youtube.com/watch?v=1cS-6KsJW9g" },
+                { title: "Tuck Jump Tutorial", url: "https://www.youtube.com/watch?v=4hXaSh2WlyE" },
+                { title: "Superman Form", url: "https://www.youtube.com/watch?v=z6PJMT2y8GQ" },
+                { title: "Broad Jump Landing Tip", url: "https://www.youtube.com/watch?v=dVgtvAXeBQw" }
+            ]
         },
         'Competent': {
-            intro: "Focus: Rate of Force Development. We are looking for elite-level power and perfect air-time mechanics.",
-            program: "Elite SBJ Optimization:\n1. Depth Jumps: 4 sets x 5 reps\n2. Single Leg Box Jumps: 3 sets x 4 per leg\n3. Burpees (Max Speed): 3 sets x 10 reps\n4. L-Sits or Leg Raises: 3 sets x 10 reps\n5. Max Distance Broad Jumps: 5 sets x 3 reps (Full Rest)"
+            intro: "Focus: Rate of Force Development. We are looking for elite power and optimization.",
+            program: "Elite SBJ Optimization:\n1. Depth Jumps: 4x5\n2. Single Leg Box Jumps: 3x4/leg\n3. Burpees (Max Speed): 3x10\n4. Leg Raises: 3x10\n5. Max Effort Broad Jumps: 5x3",
+            videos: [
+                { title: "Depth Jumps Tutorial", url: "https://www.youtube.com/watch?v=V2e-wz6AIhk" },
+                { title: "Single Leg Box Jumps", url: "https://www.youtube.com/watch?v=C5uWN9FIU9E" },
+                { title: "Speed Burpee Form", url: "https://www.youtube.com/watch?v=OlgGRqUkv3w" },
+                { title: "Broad Jump Pro Tech", url: "https://www.youtube.com/watch?v=gJTPHXgB5MY" },
+                { title: "Plyometric Power", url: "https://www.youtube.com/watch?v=AzPJZHOmGEg" }
+            ]
         }
     };
 
-    function addMessage(text, type) {
+    function addMessage(text, type, links = []) {
         const msg = document.createElement('div');
         msg.className = `msg ${type}`;
         msg.innerText = text;
+        
+        links.forEach(link => {
+            const a = document.createElement('a');
+            a.className = 'video-link';
+            a.href = link.url;
+            a.target = '_blank';
+            a.innerText = `▶ ${link.title}`;
+            msg.appendChild(a);
+        });
+
         messagesDiv.appendChild(msg);
         messagesDiv.scrollTop = messagesDiv.scrollHeight;
     }
@@ -73,15 +105,21 @@
                 addMessage(trainingData[choice].intro, 'bot');
                 setTimeout(() => {
                     addMessage("Would you like a bodyweight exercise program to help you improve?", "bot");
-                    showOptions(["Yes, show me", "No, back to groups"]);
+                    showOptions(["Show Program", "Back"]);
                 }, 600);
             } 
-            else if (choice === "Yes, show me") {
-                addMessage("Here is your 5-exercise circuit:", "bot");
+            else if (choice === "Show Program") {
                 addMessage(trainingData[currentGroup].program, "bot");
-                showOptions(["Back to groups", "Reset"]);
-            } 
-            else if (choice === "Back to groups" || choice === "No, back to groups" || choice === "Reset") {
+                setTimeout(() => {
+                    addMessage("Would you like video examples for these exercises?", "bot");
+                    showOptions(["Yes, show videos", "No, thanks"]);
+                }, 600);
+            }
+            else if (choice === "Yes, show videos") {
+                addMessage("Watch these for proper form:", "bot", trainingData[currentGroup].videos);
+                showOptions(["Reset"]);
+            }
+            else if (choice === "Back" || choice === "No, thanks" || choice === "Reset") {
                 init();
             }
         }, 500);
