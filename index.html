@@ -3,65 +3,65 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SBJ Helpline & Admin Portal</title>
+    <title>SBJ Helpline - Persistent Data</title>
     <style>
         :root { --primary: #2563eb; --bg: #f8fafc; --bot-msg: #ffffff; --user-msg: #dbeafe; }
-        body { font-family: -apple-system, sans-serif; background: var(--bg); display: flex; flex-direction: column; align-items: center; padding: 20px; margin: 0; }
-        #chat-container { width: 100%; max-width: 500px; background: white; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); display: flex; flex-direction: column; height: 80vh; overflow: hidden; border: 1px solid #e2e8f0; }
-        #header { background: var(--primary); color: white; padding: 15px; text-align: center; font-weight: bold; position: relative; }
+        body { font-family: -apple-system, sans-serif; background: var(--bg); display: flex; justify-content: center; padding: 20px; margin: 0; }
+        #chat-container { width: 100%; max-width: 500px; background: white; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); display: flex; flex-direction: column; height: 90vh; overflow: hidden; border: 1px solid #e2e8f0; }
+        
+        /* ADMIN HACK: Click the header to download */
+        #header { background: var(--primary); color: white; padding: 15px; text-align: center; font-weight: bold; cursor: pointer; user-select: none; }
+        #header:active { opacity: 0.8; }
+
         #messages { flex: 1; overflow-y: auto; padding: 15px; display: flex; flex-direction: column; gap: 10px; }
-        .msg { padding: 10px 14px; border-radius: 15px; max-width: 85%; line-height: 1.5; font-size: 14px; white-space: pre-wrap; }
+        .msg { padding: 10px 14px; border-radius: 15px; max-width: 85%; line-height: 1.5; font-size: 14px; }
         .bot { background: var(--bot-msg); align-self: flex-start; border: 1px solid #e2e8f0; border-bottom-left-radius: 2px; }
         .user { background: var(--user-msg); align-self: flex-end; color: #1e40af; border-bottom-right-radius: 2px; }
-        .video-link { display: block; margin-top: 8px; color: #2563eb; text-decoration: none; font-weight: bold; font-size: 13px; border-left: 2px solid #2563eb; padding-left: 8px; }
         
-        /* Form & Admin Styling */
-        .enquiry-form { display: flex; flex-direction: column; gap: 8px; margin-top: 10px; width: 100%; }
-        .enquiry-form input, .enquiry-form textarea { padding: 8px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 13px; font-family: inherit; }
+        .enquiry-form { display: flex; flex-direction: column; gap: 8px; margin-top: 10px; }
+        .enquiry-form input, .enquiry-form textarea { padding: 8px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 13px; }
         .submit-btn { background: var(--primary); color: white; border: none; padding: 10px; border-radius: 6px; cursor: pointer; font-weight: bold; }
-        #admin-btn { margin-top: 15px; font-size: 11px; color: #94a3b8; cursor: pointer; text-decoration: underline; background: none; border: none; }
 
         #options { padding: 15px; border-top: 1px solid #e2e8f0; display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; background: #fff; }
         button { padding: 10px 18px; border-radius: 25px; border: 1px solid var(--primary); background: white; color: var(--primary); cursor: pointer; font-weight: 500; transition: 0.2s; }
         button:hover { background: var(--primary); color: white; }
+        .video-link { display: block; margin-top: 8px; color: #2563eb; text-decoration: none; font-weight: bold; font-size: 12px; }
     </style>
 </head>
 <body>
 
 <div id="chat-container">
-    <div id="header">Standing Broad Jump Helpline</div>
+    <div id="header" onclick="adminAccess()">Standing Broad Jump Helpline</div>
     <div id="messages"></div>
     <div id="options"></div>
 </div>
-
-<button id="admin-btn" onclick="downloadData()">Admin Download (Password Required)</button>
 
 <script>
     const messagesDiv = document.getElementById('messages');
     const optionsDiv = document.getElementById('options');
     let currentGroup = "";
-    let submissions = []; // Stores the enquiry data for Excel
+
+    // PERMANENT STORAGE LOGIC
+    // This loads existing data from the browser's memory on startup
+    let submissions = JSON.parse(localStorage.getItem('sbj_enquiries')) || [];
 
     const trainingData = {
         'Beginners': {
-            intro: "Focus: Fundamentals & Landing.",
-            program: "Beginner Power Prep:\n1. Bodyweight Squats: 3x15\n2. Calf Raises: 3x20\n3. Glute Bridges: 3x12\n4. Plank: 3x30s\n5. Arm Swing Drills: 3x10",
-            videos: [{ title: "Form Tutorials", url: "https://www.youtube.com/results?search_query=standing+broad+jump+beginner+drills" }]
+            intro: "Focus: Fundamentals.",
+            program: "Beginner Prep:\n1. Squats 3x15\n2. Calf Raises 3x20\n3. Bridges 3x12\n4. Plank 30s\n5. Arm Swings",
+            videos: [{title: "Basic Drills", url: "https://youtu.be/Na73NSq2YdQ"}]
         },
         'Developing': {
-            intro: "Focus: Explosive Extension.",
-            program: "Developing Explosiveness:\n1. Jump Squats: 4x8\n2. Alternating Lunges: 3x10/leg\n3. Tuck Jumps: 3x6\n4. Superman: 3x12\n5. Broad Jump Technique: 4x5",
-            videos: [{ title: "Power Drills", url: "https://www.youtube.com/results?search_query=standing+broad+jump+power+exercises" }]
+            intro: "Focus: Explosiveness.",
+            program: "Developing:\n1. Jump Squats 4x8\n2. Lunges 3x10\n3. Tuck Jumps 3x6\n4. Superman 3x12\n5. Technique 4x5",
+            videos: [{title: "Power Technique", url: "https://youtu.be/dVgtvAXeBQw"}]
         },
         'Competent': {
-            intro: "Focus: Rate of Force Development.",
-            program: "Elite SBJ Optimization:\n1. Depth Jumps: 4x5\n2. Single Leg Box Jumps: 3x4/leg\n3. Burpees (Max Speed): 3x10\n4. L-Sits: 3x10\n5. Max Effort Broad Jumps: 5x3",
+            intro: "Focus: Force Development.",
+            program: "Elite:\n1. Depth Jumps 4x5\n2. SL Box Jumps 3x4\n3. Burpees 3x10\n4. L-Sits 3x10\n5. Max Effort 5x3",
             videos: [
-                { title: "1. Depth Jumps", url: "https://www.youtube.com/watch?v=V2e-wz6AIhk" },
-                { title: "2. Single Leg Box Jumps", url: "https://www.youtube.com/watch?v=C5uWN9FIU9E" },
-                { title: "3. Speed Burpees", url: "https://www.youtube.com/watch?v=OlgGRqUkv3w" },
-                { title: "4. Core Tech", url: "https://www.youtube.com/watch?v=xe2MXatLTUw" },
-                { title: "5. Elite Jump Breakdown", url: "https://www.youtube.com/watch?v=gJTPHXgB5MY" }
+                {title: "Depth Jumps", url: "https://youtu.be/V2e-wz6AIhk"},
+                {title: "Elite Breakdown", url: "https://youtu.be/gJTPHXgB5MY"}
             ]
         }
     };
@@ -70,110 +70,99 @@
         const msg = document.createElement('div');
         msg.className = `msg ${type}`;
         msg.innerText = text;
-        
         links.forEach(link => {
             const a = document.createElement('a');
             a.className = 'video-link'; a.href = link.url; a.target = '_blank';
             a.innerText = `▶ ${link.title}`;
             msg.appendChild(a);
         });
-
         if (isForm) {
-            const form = document.createElement('div');
-            form.className = 'enquiry-form';
-            form.innerHTML = `
-                <input type="text" id="form-name" placeholder="Name">
-                <input type="text" id="form-class" placeholder="Class">
-                <textarea id="form-query" rows="2" placeholder="Your enquiry..."></textarea>
-                <input type="text" id="form-teacher" placeholder="PE Teacher Name">
-                <button class="submit-btn" onclick="submitForm()">Submit</button>
-            `;
-            msg.appendChild(form);
+            msg.innerHTML += `
+                <div class="enquiry-form">
+                    <input type="text" id="f-name" placeholder="Name">
+                    <input type="text" id="f-class" placeholder="Class">
+                    <textarea id="f-query" rows="2" placeholder="Enquiry"></textarea>
+                    <input type="text" id="f-teacher" placeholder="PE Teacher">
+                    <button class="submit-btn" onclick="saveEnquiry()">Submit</button>
+                </div>`;
         }
-
         messagesDiv.appendChild(msg);
         messagesDiv.scrollTop = messagesDiv.scrollHeight;
     }
 
-    function showOptions(options) {
+    function showOptions(opts) {
         optionsDiv.innerHTML = '';
-        options.forEach(opt => {
-            const btn = document.createElement('button');
-            btn.innerText = opt;
-            btn.onclick = () => handleChoice(opt);
-            optionsDiv.appendChild(btn);
+        opts.forEach(o => {
+            const b = document.createElement('button');
+            b.innerText = o; b.onclick = () => handleChoice(o);
+            optionsDiv.appendChild(b);
         });
     }
 
-    function handleChoice(choice) {
-        addMessage(choice, 'user');
+    function handleChoice(c) {
+        addMessage(c, 'user');
         setTimeout(() => {
-            if (trainingData[choice]) {
-                currentGroup = choice;
-                addMessage(trainingData[choice].intro, 'bot');
+            if (trainingData[c]) {
+                currentGroup = c;
+                addMessage(trainingData[c].intro, 'bot');
                 showOptions(["Show Program", "Back"]);
-            } 
-            else if (choice === "Show Program") {
+            } else if (c === "Show Program") {
                 addMessage(trainingData[currentGroup].program, "bot");
-                showOptions(["Yes, show videos", "Skip videos"]);
-            }
-            else if (choice === "Yes, show videos" || choice === "Skip videos") {
-                if (choice === "Yes, show videos") addMessage("Watch these for form:", "bot", trainingData[currentGroup].videos);
+                showOptions(["Yes, show videos", "Skip"]);
+            } else if (c === "Yes, show videos" || c === "Skip") {
+                if (c.includes("Yes")) addMessage("Watch these:", "bot", trainingData[currentGroup].videos);
                 addMessage("Do you need additional help?", "bot");
-                showOptions(["Yes, I have an enquiry", "No, I'm good"]);
-            }
-            else if (choice === "Yes, I have an enquiry") {
-                addMessage("Please fill in the details:", "bot", [], true);
+                showOptions(["Yes, enquiry", "No, thanks"]);
+            } else if (c === "Yes, enquiry") {
+                addMessage("Fill this in:", "bot", [], true);
                 optionsDiv.innerHTML = '';
-            }
-            else if (choice === "No, I'm good") {
-                addMessage("Thank you! Good luck with your training!", "bot");
-                showOptions(["Reset"]);
-            }
-            else if (choice === "Back" || choice === "Reset") { init(); }
+            } else if (c === "No, thanks" || c === "Reset" || c === "Back") { init(); }
         }, 500);
     }
 
-    window.submitForm = function() {
-        const data = {
-            Name: document.getElementById('form-name').value,
-            Class: document.getElementById('form-class').value,
-            Enquiry: document.getElementById('form-query').value,
-            Teacher: document.getElementById('form-teacher').value,
-            Time: new Date().toLocaleString()
+    window.saveEnquiry = function() {
+        const entry = {
+            Time: new Date().toLocaleString(),
+            Name: document.getElementById('f-name').value,
+            Class: document.getElementById('f-class').value,
+            Query: document.getElementById('f-query').value,
+            Teacher: document.getElementById('f-teacher').value
         };
+        if(!entry.Name || !entry.Query) return alert("Missing info!");
         
-        if(!data.Name || !data.Enquiry) return alert("Fill in Name and Enquiry!");
-        submissions.push(data); // Save to session memory
+        // ADD TO LIST AND SAVE TO PERMANENT STORAGE
+        submissions.push(entry);
+        localStorage.setItem('sbj_enquiries', JSON.stringify(submissions));
         
-        addMessage("Submitted! Your teacher will be notified.", "bot");
+        addMessage("Saved! Your teacher can now access this.", "bot");
         setTimeout(() => { addMessage("Thank you!", "bot"); showOptions(["Reset"]); }, 800);
     };
 
-    window.downloadData = function() {
-        const pass = prompt("Enter Admin Password:");
-        if (pass !== "PE2026") return alert("Incorrect Password");
-        if (submissions.length === 0) return alert("No enquiries to download yet.");
+    // ADMIN DOWNLOAD FUNCTION
+    window.adminAccess = function() {
+        const pass = prompt("Admin Password:");
+        if (pass !== "PE2026") return alert("Denied");
+        
+        if (submissions.length === 0) return alert("Database is empty.");
 
-        let csvContent = "data:text/csv;charset=utf-8,Time,Name,Class,Enquiry,Teacher\n" 
-            + submissions.map(s => `"${s.Time}","${s.Name}","${s.Class}","${s.Enquiry}","${s.Teacher}"`).join("\n");
+        // Convert JSON to CSV for Excel
+        let csv = "Time,Name,Class,Enquiry,Teacher\n" + 
+            submissions.map(s => `"${s.Time}","${s.Name}","${s.Class}","${s.Query}","${s.Teacher}"`).join("\n");
 
-        const encodedUri = encodeURI(csvContent);
-        const link = document.createElement("a");
-        link.setAttribute("href", encodedUri);
-        link.setAttribute("download", "SBJ_Enquiries.csv");
-        document.body.appendChild(link);
-        link.click();
+        const blob = new Blob([csv], { type: 'text/csv' });
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `SBJ_Data_Export.csv`;
+        a.click();
     };
 
     function init() {
         messagesDiv.innerHTML = '';
-        addMessage("Welcome! Which group best describes your performance?", "bot");
+        addMessage("Welcome! Select your level:", "bot");
         showOptions(["Beginners", "Developing", "Competent"]);
     }
-
     init();
 </script>
-
 </body>
 </html>
