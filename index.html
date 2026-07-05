@@ -2,206 +2,198 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SBJ Helpline - Persistent Database</title>
-    <style>
-        :root { --primary: #2563eb; --bg: #f8fafc; --bot-msg: #ffffff; --user-msg: #dbeafe; }
-        body { font-family: -apple-system, sans-serif; background: var(--bg); display: flex; justify-content: center; padding: 20px; margin: 0; }
-        #chat-container { width: 100%; max-width: 500px; background: white; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); display: flex; flex-direction: column; height: 90vh; overflow: hidden; border: 1px solid #e2e8f0; }
-        
-        /* ADMIN ACCESS: Click the header to download Excel */
-        #header { background: var(--primary); color: white; padding: 15px; text-align: center; font-weight: bold; cursor: pointer; user-select: none; }
-        
-        #messages { flex: 1; overflow-y: auto; padding: 15px; display: flex; flex-direction: column; gap: 10px; }
-        .msg { padding: 10px 14px; border-radius: 15px; max-width: 85%; line-height: 1.5; font-size: 14px; white-space: pre-wrap; }
-        .bot { background: var(--bot-msg); align-self: flex-start; border: 1px solid #e2e8f0; border-bottom-left-radius: 2px; }
-        .user { background: var(--user-msg); align-self: flex-end; color: #1e40af; border-bottom-right-radius: 2px; }
-        .video-link { display: block; margin-top: 8px; color: #2563eb; text-decoration: none; font-weight: bold; font-size: 13px; border-left: 2px solid #2563eb; padding-left: 8px; }
-        
-        .enquiry-form { display: flex; flex-direction: column; gap: 8px; margin-top: 10px; width: 100%; }
-        .enquiry-form input, .enquiry-form textarea { padding: 8px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 13px; font-family: inherit; }
-        .submit-btn { background: var(--primary); color: white; border: none; padding: 10px; border-radius: 6px; cursor: pointer; font-weight: bold; }
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Standing Broad Jump Tracker</title>
+    
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils/drawing_utils.js" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/pose/pose.js" crossorigin="anonymous"></script>
 
-        #options { padding: 15px; border-top: 1px solid #e2e8f0; display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; background: #fff; }
-        button { padding: 10px 18px; border-radius: 25px; border: 1px solid var(--primary); background: white; color: var(--primary); cursor: pointer; font-weight: 500; transition: 0.2s; }
-        button:hover { background: var(--primary); color: white; }
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            background-color: #121212;
+            color: white;
+            font-family: Arial, sans-serif;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        #video-container {
+            position: relative;
+            width: 100%;
+            max-width: 800px;
+        }
+        /* Hide the video element, we will draw it onto the canvas */
+        .input_video {
+            display: none; 
+        }
+        .output_canvas {
+            width: 100%;
+            height: auto;
+            border-bottom: 3px solid #333;
+        }
+        #ui-panel {
+            padding: 15px;
+            text-align: center;
+            width: 100%;
+        }
+        .metric {
+            font-size: 1.5rem;
+            margin: 5px 0;
+        }
+        .record {
+            font-size: 2rem;
+            color: #ff4757;
+            font-weight: bold;
+        }
+        button {
+            padding: 12px 24px;
+            font-size: 1.2rem;
+            background-color: #1e90ff;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            margin-top: 10px;
+        }
+        button:active {
+            background-color: #0984e3;
+        }
+        #loading {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 1.5rem;
+            background: rgba(0,0,0,0.7);
+            padding: 20px;
+            border-radius: 10px;
+        }
     </style>
 </head>
 <body>
 
-<div id="chat-container">
-    <div id="header" onclick="adminDownload()">Standing Broad Jump Helpline</div>
-    <div id="messages"></div>
-    <div id="options"></div>
-</div>
+    <div id="video-container">
+        <video class="input_video" autoplay playsinline></video>
+        <canvas class="output_canvas" width="1280" height="720"></canvas>
+        <div id="loading">Loading Camera & AI...</div>
+    </div>
 
-<script>
-    const messagesDiv = document.getElementById('messages');
-    const optionsDiv = document.getElementById('options');
-    let currentGroup = "";
+    <div id="ui-panel">
+        <div class="metric">Current Jump: <span id="current-jump">0.00</span> m</div>
+        <div class="metric record">RECORD: <span id="max-jump">0.00</span> m</div>
+        <button onclick="resetRecord()">Reset for Next Student</button>
+    </div>
 
-    // LOAD DATA FROM PERMANENT STORAGE
-    let submissions = JSON.parse(localStorage.getItem('sbj_database')) || [];
-
-    const trainingData = {
-        'Beginners': {
-            intro: "Focus: Fundamentals & Landing. We need to make sure you aren't losing distance due to poor mechanics.",
-            program: "Beginner Power Prep:\n1. Bodyweight Squats: 3x15\n2. Calf Raises: 3x20\n3. Glute Bridges: 3x12\n4. Plank: 3x30s\n5. Arm Swing Drills: 3x10",
-            videos: [
-                { title: "1. Bodyweight Squat Form", url: "https://www.youtube.com/watch?v=n_xLyzPEX7A" },
-                { title: "2. Calf Raise Technique", url: "https://www.youtube.com/watch?v=_OewEscCsbo" },
-                { title: "3. Glute Bridge Tutorial", url: "https://www.youtube.com/watch?v=R6n608M3czU" },
-                { title: "4. Perfect Plank Form", url: "https://www.youtube.com/watch?v=v25dawSzRTM" },
-                { title: "5. Jump Arm Swing Drill", url: "https://www.youtube.com/watch?v=Na73NSq2YdQ" }
-            ]
-        },
-        'Developing': {
-            intro: "Focus: Explosive Extension. You have the basics; now we need more force from your hips.",
-            program: "Developing Explosiveness:\n1. Jump Squats: 4x8\n2. Alternating Lunges: 3x10/leg\n3. Tuck Jumps: 3x6\n4. Superman: 3x12\n5. Broad Jump Technique: 4x5",
-            videos: [
-                { title: "1. Jump Squat Guide", url: "https://www.youtube.com/watch?v=h5TmdMMtIT4" },
-                { title: "2. Lunge Technique", url: "https://www.youtube.com/watch?v=1cS-6KsJW9g" },
-                { title: "3. Tuck Jump Tutorial", url: "https://www.youtube.com/watch?v=4hXaSh2WlyE" },
-                { title: "4. Superman Form", url: "https://www.youtube.com/watch?v=z6PJMT2y8GQ" },
-                { title: "5. Broad Jump Landing Tip", url: "https://www.youtube.com/watch?v=dVgtvAXeBQw" }
-            ]
-        },
-        'Competent': {
-            intro: "Focus: Rate of Force Development. We are looking for elite power and optimization.",
-            program: "Elite SBJ Optimization:\n1. Depth Jumps: 4x5\n2. Single Leg Box Jumps: 3x4/leg\n3. Burpees (Max Speed): 3x10\n4. L-Sits or Leg Raises: 3x10\n5. Max Effort Broad Jumps: 5x3",
-            videos: [
-                { title: "1. Depth Jumps Tutorial", url: "https://www.youtube.com/watch?v=V2e-wz6AIhk" },
-                { title: "2. Single Leg Box Jumps", url: "https://www.youtube.com/watch?v=C5uWN9FIU9E" },
-                { title: "3. Speed Burpee Form", url: "https://www.youtube.com/watch?v=OlgGRqUkv3w" },
-                { title: "4. Core Tension Tech", url: "https://www.youtube.com/watch?v=xe2MXatLTUw" },
-                { title: "5. Max Effort Broad Jump Breakdown", url: "https://www.youtube.com/watch?v=gJTPHXgB5MY" }
-            ]
-        }
-    };
-
-    function addMessage(text, type, links = [], isForm = false) {
-        const msg = document.createElement('div');
-        msg.className = `msg ${type}`;
-        msg.innerText = text;
+    <script>
+        const videoElement = document.getElementsByClassName('input_video')[0];
+        const canvasElement = document.getElementsByClassName('output_canvas')[0];
+        const canvasCtx = canvasElement.getContext('2d');
+        const loadingElement = document.getElementById('loading');
         
-        links.forEach(link => {
-            const a = document.createElement('a');
-            a.className = 'video-link'; a.href = link.url; a.target = '_blank';
-            a.innerText = `▶ ${link.title}`;
-            msg.appendChild(a);
-        });
+        let maxJumpDistance = 0.0;
 
-        if (isForm) {
-            const form = document.createElement('div');
-            form.className = 'enquiry-form';
-            form.innerHTML = `
-                <input type="text" id="f-name" placeholder="Name">
-                <input type="text" id="f-class" placeholder="Class">
-                <textarea id="f-query" rows="2" placeholder="What are you enquiring about?"></textarea>
-                <input type="text" id="f-teacher" placeholder="Name of your PE Teacher">
-                <button class="submit-btn" onclick="saveData()">Submit Enquiry</button>
-            `;
-            msg.appendChild(form);
+        // --- CALIBRATION SETTINGS ---
+        // Assuming the student jumps from LEFT to RIGHT across the screen.
+        const START_LINE_PERCENT = 0.15; // Start line is at 15% of the screen width
+        const PIXELS_PER_METER = 350;    // Adjust this based on your camera's field of view
+        
+        function resetRecord() {
+            maxJumpDistance = 0.0;
+            document.getElementById('max-jump').innerText = "0.00";
         }
 
-        messagesDiv.appendChild(msg);
-        messagesDiv.scrollTop = messagesDiv.scrollHeight;
-    }
+        function onResults(results) {
+            // Hide loading screen once AI is running
+            loadingElement.style.display = 'none';
 
-    function showOptions(options) {
-        optionsDiv.innerHTML = '';
-        options.forEach(opt => {
-            const btn = document.createElement('button');
-            btn.innerText = opt;
-            btn.onclick = () => handleChoice(opt);
-            optionsDiv.appendChild(btn);
+            canvasCtx.save();
+            canvasCtx.clearRect(0, 0, canvasElement.width, canvasElement.height);
+            
+            // Draw Video Frame
+            canvasCtx.drawImage(results.image, 0, 0, canvasElement.width, canvasElement.height);
+
+            const startLineX = canvasElement.width * START_LINE_PERCENT;
+
+            // Draw Virtual Cones/Lines (0m, 1m, 2m, 3m)
+            for (let i = 0; i <= 3; i++) {
+                let lineX = startLineX + (i * PIXELS_PER_METER);
+                
+                // Draw Line
+                canvasCtx.beginPath();
+                canvasCtx.moveTo(lineX, 0);
+                canvasCtx.lineTo(lineX, canvasElement.height);
+                canvasCtx.strokeStyle = i === 0 ? '#00ff00' : '#ffa500'; // Green for start, Orange for meters
+                canvasCtx.lineWidth = 4;
+                canvasCtx.stroke();
+                
+                // Draw Text
+                canvasCtx.font = "30px Arial";
+                canvasCtx.fillStyle = "white";
+                canvasCtx.fillText(i + "m", lineX + 10, canvasElement.height - 20);
+            }
+
+            // Pose Tracking Logic
+            if (results.poseLandmarks) {
+                // Draw Skeleton
+                drawConnectors(canvasCtx, results.poseLandmarks, POSE_CONNECTIONS, {color: '#00FF00', lineWidth: 4});
+                drawLandmarks(canvasCtx, results.poseLandmarks, {color: '#FF0000', lineWidth: 2});
+
+                // Get Heels (MediaPipe indices: 29 = Left Heel, 30 = Right Heel)
+                const leftHeel = results.poseLandmarks[29];
+                const rightHeel = results.poseLandmarks[30];
+
+                // Convert normalized coordinates (0-1) to canvas pixels
+                const leftHeelX = leftHeel.x * canvasElement.width;
+                const rightHeelX = rightHeel.x * canvasElement.width;
+
+                // Find the back-most foot (minimum X value since they are jumping left to right)
+                const backHeelX = Math.min(leftHeelX, rightHeelX);
+
+                // Calculate Distance
+                const distancePixels = backHeelX - startLineX;
+                
+                if (distancePixels > 0) {
+                    const currentDistanceMeters = distancePixels / PIXELS_PER_METER;
+                    
+                    // Update UI
+                    document.getElementById('current-jump').innerText = currentDistanceMeters.toFixed(2);
+
+                    if (currentDistanceMeters > maxJumpDistance) {
+                        maxJumpDistance = currentDistanceMeters;
+                        document.getElementById('max-jump').innerText = maxJumpDistance.toFixed(2);
+                    }
+                }
+            }
+            canvasCtx.restore();
+        }
+
+        const pose = new Pose({locateFile: (file) => {
+            return `https://cdn.jsdelivr.net/npm/@mediapipe/pose/${file}`;
+        }});
+        
+        pose.setOptions({
+            modelComplexity: 1,
+            smoothLandmarks: true,
+            minDetectionConfidence: 0.5,
+            minTrackingConfidence: 0.5
         });
-    }
-
-    function handleChoice(choice) {
-        addMessage(choice, 'user');
-        setTimeout(() => {
-            if (trainingData[choice]) {
-                currentGroup = choice;
-                addMessage(trainingData[choice].intro, 'bot');
-                setTimeout(() => {
-                    addMessage("Would you like an exercise program to help you improve?", "bot");
-                    showOptions(["Show Program", "Back"]);
-                }, 600);
-            } 
-            else if (choice === "Show Program") {
-                addMessage(trainingData[currentGroup].program, "bot");
-                setTimeout(() => {
-                    addMessage("Would you like video examples for these exercises?", "bot");
-                    showOptions(["Yes, show videos", "Skip videos"]);
-                }, 600);
-            }
-            else if (choice === "Yes, show videos" || choice === "Skip videos") {
-                if (choice === "Yes, show videos") addMessage("Watch these for proper form:", "bot", trainingData[currentGroup].videos);
-                setTimeout(() => {
-                    addMessage("Do you need additional help?", "bot");
-                    showOptions(["Yes", "No"]);
-                }, 600);
-            }
-            else if (choice === "Yes") {
-                addMessage("Please fill in the details below:", "bot", [], true);
-                optionsDiv.innerHTML = '';
-            }
-            else if (choice === "No") {
-                addMessage("Thank you!", "bot");
-                showOptions(["Reset"]);
-            }
-            else if (choice === "Back" || choice === "Reset") {
-                init();
-            }
-        }, 500);
-    }
-
-    window.saveData = function() {
-        const entry = {
-            Date: new Date().toLocaleString(),
-            Name: document.getElementById('f-name').value,
-            Class: document.getElementById('f-class').value,
-            Query: document.getElementById('f-query').value,
-            Teacher: document.getElementById('f-teacher').value
-        };
         
-        if(!entry.Name || !entry.Query) return alert("Please fill in Name and Enquiry.");
+        pose.onResults(onResults);
+
+        const camera = new Camera(videoElement, {
+            onFrame: async () => {
+                await pose.send({image: videoElement});
+            },
+            width: 1280,
+            height: 720,
+            facingMode: "environment" // Uses the back camera on mobile phones
+        });
         
-        // SAVE PERMANENTLY
-        submissions.push(entry);
-        localStorage.setItem('sbj_database', JSON.stringify(submissions));
-        
-        addMessage("Form Submitted! Your teacher will be notified.", "bot");
-        setTimeout(() => {
-            addMessage("Thank you!", "bot");
-            showOptions(["Reset"]);
-        }, 800);
-    };
-
-    window.adminDownload = function() {
-        const pass = prompt("Admin Password:");
-        if (pass !== "PE2026") return alert("Access Denied");
-        if (submissions.length === 0) return alert("No data yet.");
-
-        let csv = "Date,Name,Class,Enquiry,PE Teacher\n" + 
-            submissions.map(s => `"${s.Date}","${s.Name}","${s.Class}","${s.Query}","${s.Teacher}"`).join("\n");
-
-        const blob = new Blob([csv], { type: 'text/csv' });
-        const url = window.URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = "SBJ_Student_Enquiries.csv";
-        a.click();
-    };
-
-    function init() {
-        messagesDiv.innerHTML = '';
-        addMessage("Welcome to the SBJ Helpline. Which group best describes your current performance?", "bot");
-        showOptions(["Beginners", "Developing", "Competent"]);
-    }
-
-    init();
-</script>
+        camera.start();
+    </script>
 </body>
 </html>
